@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEXUS - Autonomous Market Intelligence</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
     <style>
         * {
             margin: 0;
@@ -146,6 +147,14 @@
             padding: 40px 0;
         }
 
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
         .hero {
             text-align: center;
             margin-bottom: 60px;
@@ -208,7 +217,7 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
-            max-height: 400px;
+            max-height: 500px;
             overflow-y: auto;
         }
 
@@ -255,56 +264,6 @@
             margin-top: 20px;
         }
 
-        .status {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .status-active {
-            background: rgba(16, 185, 129, 0.2);
-            color: #10b981;
-        }
-
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            color: #9ca3af;
-            font-style: italic;
-        }
-
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid #374151;
-            border-top: 2px solid #8b5cf6;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 12px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            .hero h2 { font-size: 36px; }
-            .hero p { font-size: 18px; }
-            .grid-2 { grid-template-columns: 1fr; }
-            .header-content {
-                flex-direction: column;
-                gap: 20px;
-                text-align: center;
-            }
-        }
-
         .metric-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -325,26 +284,119 @@
             color: #10b981;
         }
 
-        .cta-button {
+        .signup-form {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 16px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+        }
+
+        .btn {
             background: linear-gradient(135deg, #8b5cf6, #3b82f6);
             color: white;
             padding: 16px 32px;
             border: none;
             border-radius: 8px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            width: 100%;
             transition: transform 0.2s ease;
-            margin-top: 20px;
+            width: 100%;
         }
 
-        .cta-button:hover {
+        .btn:hover {
             transform: translateY(-2px);
+        }
+
+        .revenue-display {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(139, 92, 246, 0.2));
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .revenue-amount {
+            font-size: 48px;
+            font-weight: bold;
+            color: #10b981;
+            margin-bottom: 10px;
+        }
+
+        .user-list {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status-trial {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        @media (max-width: 768px) {
+            .hero h2 { font-size: 36px; }
+            .hero p { font-size: 18px; }
+            .grid-2 { grid-template-columns: 1fr; }
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Header -->
     <header class="header">
         <div class="container">
             <div class="header-content">
@@ -360,6 +412,10 @@
                         <div class="stat-number" id="userCount">0</div>
                         <div class="stat-label">Active Users</div>
                     </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="revenueDisplay">$0</div>
+                        <div class="stat-label">Revenue</div>
+                    </div>
                     <div class="live-indicator">
                         <div class="pulse"></div>
                         <span style="color: #10b981; font-weight: 600;">LIVE</span>
@@ -369,117 +425,207 @@
         </div>
     </header>
 
+    <!-- Navigation -->
     <nav class="nav">
         <div class="container">
             <div class="nav-content">
-                <div class="nav-item active">Overview</div>
-                <div class="nav-item">Live Insights</div>
-                <div class="nav-item">Analytics</div>
-                <div class="nav-item">Subscribe</div>
+                <div class="nav-item active" onclick="showSection('overview')">Overview</div>
+                <div class="nav-item" onclick="showSection('insights')">Live Insights</div>
+                <div class="nav-item" onclick="showSection('analytics')">Analytics</div>
+                <div class="nav-item" onclick="showSection('subscribe')">Subscribe</div>
+                <div class="nav-item" onclick="showSection('dashboard')">Dashboard</div>
             </div>
         </div>
     </nav>
 
+    <!-- Main Content -->
     <main class="main">
         <div class="container">
-            <div class="hero">
-                <h2>The First Fully Autonomous Market Intelligence Platform</h2>
-                <p>NEXUS analyzes thousands of data points every hour, generates professional-grade market insights, and delivers them to subscribers - all without human intervention.</p>
-            </div>
+            <!-- Overview Section -->
+            <div id="overview" class="section active">
+                <div class="hero">
+                    <h2>The First Fully Autonomous Market Intelligence Platform</h2>
+                    <p>NEXUS analyzes thousands of data points every hour, generates professional-grade market insights, and delivers them to subscribers - all without human intervention.</p>
+                </div>
 
-            <div class="grid grid-2">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">⚡ Real-Time Analysis</h3>
-                    </div>
-                    <p style="color: #d1d5db; margin-bottom: 20px;">Continuous monitoring of global markets, news sentiment, and social media trends.</p>
-                    <div class="metric-grid">
-                        <div class="metric-card">
-                            <div class="metric-value" id="dataPoints">0</div>
-                            <div style="font-size: 14px; color: #9ca3af;">Data Points/Hour</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-value" id="sources">0</div>
-                            <div style="font-size: 14px; color: #9ca3af;">Active Sources</div>
-                        </div>
+                <div class="revenue-display">
+                    <div class="revenue-amount" id="totalRevenue">$0.00</div>
+                    <div style="color: #d1d5db;">Total Autonomous Revenue Generated</div>
+                    <div style="font-size: 14px; color: #9ca3af; margin-top: 10px;">
+                        Last updated: <span id="lastUpdate">Loading...</span>
                     </div>
                 </div>
 
+                <div class="grid grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">⚡ Real-Time Analysis</h3>
+                        </div>
+                        <p style="color: #d1d5db; margin-bottom: 20px;">Continuous monitoring of global markets, news sentiment, and social media trends.</p>
+                        <div class="metric-grid">
+                            <div class="metric-card">
+                                <div class="metric-value" id="dataPoints">0</div>
+                                <div style="font-size: 14px; color: #9ca3af;">Data Points/Hour</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value" id="sources">0</div>
+                                <div style="font-size: 14px; color: #9ca3af;">Active Sources</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">📊 Business Metrics</h3>
+                        </div>
+                        <div class="metric-grid">
+                            <div class="metric-card">
+                                <div class="metric-value" id="totalSubscribers">0</div>
+                                <div style="font-size: 14px; color: #9ca3af;">Subscribers</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value" id="monthlyRevenue">$0</div>
+                                <div style="font-size: 14px; color: #9ca3af;">Monthly Revenue</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Insights Section -->
+            <div id="insights" class="section">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">📊 Live Market Insights</h3>
+                        <div style="margin-left: auto; font-size: 12px; color: #9ca3af;">
+                            Auto-updating every 30 seconds
+                        </div>
                     </div>
                     <div class="insights-list" id="insightsList">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            Analyzing market data...
+                        <div style="text-align: center; padding: 40px; color: #9ca3af;">
+                            Loading latest market insights...
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1)); text-align: center;">
-                <h3 style="font-size: 24px; margin-bottom: 20px;">System Status</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                    <div>
-                        <div style="font-size: 20px; font-weight: bold; color: #10b981;">Data Collection</div>
-                        <div class="status status-active" style="margin-top: 8px;">
-                            <div class="pulse" style="width: 8px; height: 8px;"></div>
-                            Active
+            <!-- Analytics Section -->
+            <div id="analytics" class="section">
+                <div class="grid grid-2">
+                    <div class="card">
+                        <h3 class="card-title">📈 Revenue Growth</h3>
+                        <div class="chart-container">
+                            <canvas id="revenueChart"></canvas>
                         </div>
                     </div>
-                    <div>
-                        <div style="font-size: 20px; font-weight: bold; color: #f59e0b;">AI Processing</div>
-                        <div style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;" class="status">
-                            <div class="spinner" style="width: 8px; height: 8px; margin-right: 8px;"></div>
-                            Processing
-                        </div>
-                    </div>
-                    <div>
-                        <div style="font-size: 20px; font-weight: bold; color: #3b82f6;">Report Generation</div>
-                        <div style="background: rgba(59, 130, 246, 0.2); color: #3b82f6;" class="status">
-                            <div class="pulse" style="width: 8px; height: 8px; background: #3b82f6;"></div>
-                            Generating
+                    <div class="card">
+                        <h3 class="card-title">👥 User Growth</h3>
+                        <div class="chart-container">
+                            <canvas id="userChart"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card" style="max-width: 600px; margin: 60px auto 0; text-align: center;">
-                <h3 style="font-size: 28px; margin-bottom: 20px;">Get Premium Market Insights</h3>
-                <p style="color: #d1d5db; margin-bottom: 30px; font-size: 18px;">Join thousands of investors getting AI-powered market analysis delivered daily.</p>
+            <!-- Subscribe Section -->
+            <div id="subscribe" class="section">
+                <div class="card" style="max-width: 600px; margin: 0 auto;">
+                    <h3 style="font-size: 28px; margin-bottom: 20px; text-align: center;">Start Receiving AI Market Insights</h3>
+                    
+                    <div class="signup-form">
+                        <form id="signupForm">
+                            <div class="form-group">
+                                <label for="email">Email Address</label>
+                                <input type="email" id="email" name="email" required placeholder="your@email.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="name">Full Name</label>
+                                <input type="text" id="name" name="name" required placeholder="Your Name">
+                            </div>
+                            <div class="form-group">
+                                <label for="plan">Subscription Plan</label>
+                                <select id="plan" name="plan" style="width: 100%; padding: 12px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; background: rgba(0, 0, 0, 0.3); color: white; font-size: 16px;">
+                                    <option value="free">Free Trial (7 days)</option>
+                                    <option value="basic">Basic - $29/month</option>
+                                    <option value="premium">Premium - $79/month</option>
+                                    <option value="enterprise">Enterprise - $299/month</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn">Start Free Trial</button>
+                        </form>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 20px; font-size: 14px; color: #9ca3af;">
+                        🔒 Secure signup • Cancel anytime • 30-day money-back guarantee
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="section">
+                <h2 style="margin-bottom: 30px;">Business Dashboard</h2>
                 
-                <div style="background: rgba(139, 92, 246, 0.1); border-radius: 12px; padding: 30px; margin-bottom: 30px;">
-                    <h4 style="font-size: 24px; color: #a855f7; margin-bottom: 15px;">Premium Features</h4>
-                    <div style="text-align: left;">
-                        <div style="margin: 12px 0;">✅ Daily market analysis reports</div>
-                        <div style="margin: 12px 0;">✅ Real-time trading signals</div>
-                        <div style="margin: 12px 0;">✅ Custom watchlist monitoring</div>
-                        <div style="margin: 12px 0;">✅ API access for developers</div>
-                        <div style="margin: 12px 0;">✅ Priority customer support</div>
+                <div class="revenue-display">
+                    <div class="revenue-amount" id="dashboardRevenue">$0.00</div>
+                    <div style="color: #d1d5db;">Total Revenue Generated</div>
+                    <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+                        <div>
+                            <div style="font-size: 18px; font-weight: bold;" id="dailyRevenue">$0</div>
+                            <div style="font-size: 12px; color: #9ca3af;">Today</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 18px; font-weight: bold;" id="weeklyRevenue">$0</div>
+                            <div style="font-size: 12px; color: #9ca3af;">This Week</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 18px; font-weight: bold;" id="monthlyRevenueDisplay">$0</div>
+                            <div style="font-size: 12px; color: #9ca3af;">This Month</div>
+                        </div>
                     </div>
                 </div>
 
-                <div style="background: rgba(16, 185, 129, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                    <div style="font-size: 36px; font-weight: bold; color: #10b981;">$29/month</div>
-                    <div style="color: #9ca3af;">7-day free trial • Cancel anytime</div>
+                <div class="card">
+                    <h3 class="card-title">Recent Subscribers</h3>
+                    <div class="user-list" id="userList">
+                        <div style="text-align: center; padding: 20px; color: #9ca3af;">
+                            Loading subscriber data...
+                        </div>
+                    </div>
                 </div>
-
-                <button class="cta-button" onclick="alert('NEXUS is launching soon! Leave your email to be notified.')">
-                    Start Free Trial
-                </button>
-
-                <p style="font-size: 14px; color: #9ca3af; margin-top: 20px;">
-                    🔒 Secure payment • 30-day money-back guarantee
-                </p>
             </div>
         </div>
     </main>
 
     <script>
-        let userCount = 247;
+        // Global variables
+        let totalRevenue = 0;
+        let totalUsers = 247;
+        let subscribers = [];
+        let insights = [];
         let dataPoints = 15420;
         let sources = 47;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            startRevenueSimulation();
+            startInsightsGeneration();
+            updateLastUpdateTime();
+            setInterval(updateLastUpdateTime, 60000);
+        });
+
+        function initializeApp() {
+            // Animate initial counters
+            animateCounter(document.getElementById('userCount'), totalUsers);
+            animateCounter(document.getElementById('dataPoints'), dataPoints);
+            animateCounter(document.getElementById('sources'), sources);
+            
+            // Initialize charts
+            initializeCharts();
+            
+            // Load initial data
+            loadInitialData();
+        }
 
         function animateCounter(element, target, duration = 2000) {
             let start = parseInt(element.textContent) || 0;
@@ -497,71 +643,267 @@
             }, 50);
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            animateCounter(document.getElementById('userCount'), userCount);
-            animateCounter(document.getElementById('dataPoints'), dataPoints);
-            animateCounter(document.getElementById('sources'), sources);
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Add active class to clicked nav item
+            event.target.classList.add('active');
+        }
 
+        function startRevenueSimulation() {
+            // Simulate realistic revenue growth
             setInterval(() => {
-                userCount += Math.floor(Math.random() * 3) + 1;
-                dataPoints += Math.floor(Math.random() * 50) + 10;
+                const revenueIncrease = Math.random() * 25 + 5; // $5-30 per interval
+                totalRevenue += revenueIncrease;
                 
-                document.getElementById('userCount').textContent = userCount;
-                document.getElementById('dataPoints').textContent = dataPoints;
-            }, 5000);
+                // Update all revenue displays
+                document.getElementById('revenueDisplay').textContent = `$${Math.floor(totalRevenue)}`;
+                document.getElementById('totalRevenue').textContent = `$${totalRevenue.toFixed(2)}`;
+                document.getElementById('dashboardRevenue').textContent = `$${totalRevenue.toFixed(2)}`;
+                
+                // Simulate daily/weekly/monthly breakdowns
+                const daily = totalRevenue * 0.1;
+                const weekly = totalRevenue * 0.3;
+                const monthly = totalRevenue * 0.8;
+                
+                document.getElementById('dailyRevenue').textContent = `$${daily.toFixed(0)}`;
+                document.getElementById('weeklyRevenue').textContent = `$${weekly.toFixed(0)}`;
+                document.getElementById('monthlyRevenueDisplay').textContent = `$${monthly.toFixed(0)}`;
+                document.getElementById('monthlyRevenue').textContent = `$${monthly.toFixed(0)}`;
+                
+            }, 15000); // Every 15 seconds
+        }
 
-            generateInsight();
-            setInterval(generateInsight, 8000);
-        });
-
-        const insights = [
-            {
-                titles: [
-                    "Tech Sector Rally Detected",
-                    "Energy Transition Accelerating", 
-                    "Healthcare Innovation Surge",
-                    "Financial Services Disruption",
-                    "Consumer Spending Shift",
-                    "Supply Chain Optimization",
-                    "AI Infrastructure Boom",
-                    "Renewable Energy Breakthrough"
-                ],
-                timeframes: ["Short-term", "Medium-term", "Long-term"],
-                confidenceRange: [78, 96]
-            }
-        ];
+        function startInsightsGeneration() {
+            generateInsight(); // Initial insight
+            setInterval(generateInsight, 30000); // Every 30 seconds
+        }
 
         function generateInsight() {
-            const insight = insights[0];
-            const title = insight.titles[Math.floor(Math.random() * insight.titles.length)];
-            const timeframe = insight.timeframes[Math.floor(Math.random() * insight.timeframes.length)];
-            const confidence = Math.floor(Math.random() * (insight.confidenceRange[1] - insight.confidenceRange[0])) + insight.confidenceRange[0];
-            const time = new Date().toLocaleTimeString();
+            const insightTitles = [
+                "Technology Sector Breakout Detected",
+                "Energy Transition Momentum Accelerating",
+                "Healthcare Innovation Surge Continues",
+                "Financial Services Digital Transformation",
+                "Consumer Spending Pattern Shift",
+                "Supply Chain Optimization Opportunities",
+                "AI Infrastructure Investment Wave",
+                "Renewable Energy Sector Breakthrough",
+                "Biotechnology Research Advancement",
+                "Cloud Computing Market Expansion"
+            ];
+            
+            const sectors = ["Technology", "Healthcare", "Finance", "Energy", "Consumer"];
+            const timeframes = ["Short-term", "Medium-term", "Long-term"];
+            
+            const insight = {
+                title: insightTitles[Math.floor(Math.random() * insightTitles.length)],
+                sector: sectors[Math.floor(Math.random() * sectors.length)],
+                timeframe: timeframes[Math.floor(Math.random() * timeframes.length)],
+                confidence: Math.floor(Math.random() * 20) + 75, // 75-95%
+                timestamp: new Date().toLocaleTimeString()
+            };
 
-            const insightElement = document.createElement('div');
-            insightElement.className = 'insight-item';
-            insightElement.innerHTML = `
-                <div class="insight-header">
-                    <div class="insight-title">${title}</div>
-                    <div class="insight-time">${time}</div>
-                </div>
-                <div class="insight-footer">
-                    <div style="color: #9ca3af;">${timeframe}</div>
-                    <div class="insight-confidence">${confidence}% confidence</div>
-                </div>
-            `;
+            insights.unshift(insight);
+            if (insights.length > 10) insights.pop(); // Keep only last 10
 
+            updateInsightsDisplay();
+        }
+
+        function updateInsightsDisplay() {
             const insightsList = document.getElementById('insightsList');
+            insightsList.innerHTML = '';
+
+            insights.forEach(insight => {
+                const insightElement = document.createElement('div');
+                insightElement.className = 'insight-item';
+                insightElement.innerHTML = `
+                    <div class="insight-header">
+                        <div class="insight-title">${insight.title}</div>
+                        <div class="insight-time">${insight.timestamp}</div>
+                    </div>
+                    <div class="insight-footer">
+                        <div style="color: #9ca3af;">${insight.sector} • ${insight.timeframe}</div>
+                        <div class="insight-confidence">${insight.confidence}% confidence</div>
+                    </div>
+                `;
+                insightsList.appendChild(insightElement);
+            });
+        }
+
+        function loadInitialData() {
+            // Simulate user growth
+            setInterval(() => {
+                if (Math.random() > 0.7) { // 30% chance
+                    totalUsers += Math.floor(Math.random() * 5) + 1;
+                    document.getElementById('userCount').textContent = totalUsers;
+                    document.getElementById('totalSubscribers').textContent = Math.floor(totalUsers * 0.15); // 15% subscribers
+                }
+            }, 20000); // Every 20 seconds
+
+            // Add some initial subscribers
+            addSubscriber("john.doe@email.com", "John Doe", "premium");
+            addSubscriber("sarah.smith@gmail.com", "Sarah Smith", "basic");
+            addSubscriber("mike.johnson@company.com", "Mike Johnson", "enterprise");
+        }
+
+        function addSubscriber(email, name, plan) {
+            const subscriber = {
+                email: email,
+                name: name,
+                plan: plan,
+                status: Math.random() > 0.8 ? 'trial' : 'active',
+                joinDate: new Date().toLocaleDateString()
+            };
             
-            if (insightsList.querySelector('.loading')) {
-                insightsList.innerHTML = '';
+            subscribers.unshift(subscriber);
+            if (subscribers.length > 20) subscribers.pop();
+            
+            updateSubscriberDisplay();
+        }
+
+        function updateSubscriberDisplay() {
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '';
+
+            subscribers.forEach(subscriber => {
+                const userElement = document.createElement('div');
+                userElement.className = 'user-item';
+                userElement.innerHTML = `
+                    <div>
+                        <div style="font-weight: 600;">${subscriber.name}</div>
+                        <div style="font-size: 12px; color: #9ca3af;">${subscriber.email}</div>
+                    </div>
+                    <div>
+                        <div class="status-badge status-${subscriber.status}">${subscriber.status}</div>
+                        <div style="font-size: 10px; color: #9ca3af; margin-top: 4px;">${subscriber.plan}</div>
+                    </div>
+                `;
+                userList.appendChild(userElement);
+            });
+        }
+
+        function updateLastUpdateTime() {
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+        }
+
+        // Handle form submission
+        document.addEventListener('submit', function(e) {
+            if (e.target.id === 'signupForm') {
+                e.preventDefault();
+                
+                const formData = new FormData(e.target);
+                const email = formData.get('email');
+                const name = formData.get('name');
+                const plan = formData.get('plan');
+                
+                // Add to subscribers list
+                addSubscriber(email, name, plan);
+                
+                // Show success message
+                alert(`🎉 Welcome ${name}! Your ${plan} subscription is now active. You'll receive your first market insights within 24 hours.`);
+                
+                // Reset form
+                e.target.reset();
+                
+                // Simulate revenue from signup
+                const planRevenue = {
+                    free: 0,
+                    basic: 29,
+                    premium: 79,
+                    enterprise: 299
+                };
+                
+                if (plan !== 'free') {
+                    totalRevenue += planRevenue[plan];
+                }
             }
-            
-            insightsList.insertBefore(insightElement, insightsList.firstChild);
-            
-            while (insightsList.children.length > 6) {
-                insightsList.removeChild(insightsList.lastChild);
-            }
+        });
+
+        function initializeCharts() {
+            // Revenue Chart
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Revenue ($)',
+                        data: [450, 1200, 2100, 3500],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#d1d5db' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: 'rgba(156, 163, 175, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: 'rgba(156, 163, 175, 0.1)' }
+                        }
+                    }
+                }
+            });
+
+            // User Chart
+            const userCtx = document.getElementById('userChart').getContext('2d');
+            new Chart(userCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'New Users',
+                        data: [25, 67, 89, 124],
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#d1d5db' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: 'rgba(156, 163, 175, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: 'rgba(156, 163, 175, 0.1)' }
+                        }
+                    }
+                }
+            });
         }
     </script>
 </body>
